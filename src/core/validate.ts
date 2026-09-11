@@ -109,4 +109,15 @@ export function validate(p: Project): Diagnostic[] {
       const comparison = compareTriggers(children(actualTrigger), children(referenceTrigger));
       if (comparison === 'changed') add('WARNING', 'TRIGGER_UNKNOWN', 'UNKNOWN: triggers alterados. Revisar conquistas, estate, relações, construções e demais condições manualmente.', m, 'trigger');
       if (comparison === 'allowed') add('INFO', 'TROOPS', 'Requisitos diretos de tropas/navios respeitam o mínimo de 70%.', m, 'trigger');
-      for (
+      for (const reference of children(referenceTrigger)) {
+        if (!reference.key || !troopKeys.has(reference.key) || typeof reference.value !== 'string' || !['=', '>='].includes(reference.op ?? '=')) continue;
+        const actual = field(children(actualTrigger), reference.key);
+        if (actual && typeof actual.value === 'string' && Number.isFinite(Number(actual.value)) && Number(actual.value) < Number(reference.value) * 0.7) add('ERROR', 'TROOP_REDUCTION', `${reference.key}: redução acima de 30%.`, m, 'trigger');
+      }
+    }
+    if (semantic(modifiers(actualBody)) !== semantic(modifiers(referenceBody))) add('ERROR', 'MODIFIERS', 'Modifiers diferem da contraparte.', m, 'effect');
+    if (semantic(children(field(actualBody, 'effect'))) !== semantic(children(field(referenceBody, 'effect')))) add('WARNING', 'EFFECT_UNKNOWN', 'UNKNOWN: efeitos alterados. Claims, distâncias e realocação de development/buildings/autonomy exigem revisão e dados do mapa.', m, 'effect');
+  }
+  add('WARNING', 'PORTU_REVIEW', 'UNKNOWN: validação Portuversalis parcial. Scripted triggers/effects, geografia e permissões de realocação exigem revisão humana. Ausência de ERROR não certifica as regras completas.');
+  return result;
+}

@@ -134,7 +134,7 @@ export function loadProject(source: string): Project {
   p.library = Array.isArray(data.library) ? data.library.map(tree) : [];
   p.baseTreeId = str(data.baseTreeId); p.portuversalis = data.portuversalis === true;
   p.language = ['english', 'french', 'german', 'spanish'].includes(data.language) ? data.language : 'english';
-  p.branches = Array.isArray(data.branches) ? data.branches.map((b: Partial<Branch>) => ({ id: str(b.id, uid()), name: str(b.name), type: ['father', 'son', 'generic'].includes(b.type ?? '') ? b.type : 'generic', fatherId: str(b.fatherId), trigger: str(b.trigger), missions: Array.isArray(b.missions) ? b.missions.filter((m: unknown) => typeof m === 'string') : [] })) : [];
+  p.branches = Array.isArray(data.branches) ? data.branches.map((b: Partial<Branch>) => ({ id: str(b.id, uid()), name: str(b.name), type: b.type === 'father' || b.type === 'son' ? b.type : 'generic', fatherId: str(b.fatherId), trigger: str(b.trigger), missions: Array.isArray(b.missions) ? b.missions.filter((m: unknown) => typeof m === 'string') : [] })) : [];
   for (const [key, value] of Object.entries(data.origins ?? {})) {
     const v = value as Partial<Origin> | null;
     if (v && typeof v.treeId === 'string' && typeof v.missionId === 'string') Object.defineProperty(p.origins, key, { value: { treeId: v.treeId, missionId: v.missionId }, enumerable: true, writable: true, configurable: true });
