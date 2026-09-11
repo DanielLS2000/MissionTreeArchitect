@@ -26,6 +26,15 @@ function preserveIds(old: Ast, next: Ast): Ast {
 export { preserveIds };
 export default function Inspector({ project, selected, mutate, report }: { project: Project; selected: string; mutate: Mutate; report: (s: string) => void }) {
   const [tab, setTab] = useState('mission');
+  useEffect(() => {
+    const focus = (event: Event) => {
+      const property = (event as CustomEvent<string>).detail;
+      setTab(['trigger', 'effect', 'raw'].includes(property) ? property : 'mission');
+      setTimeout(() => document.getElementById(`property-${property}`)?.querySelector<HTMLElement>('input,select,textarea')?.focus(), 30);
+    };
+    window.addEventListener('eu4-focus-property', focus);
+    return () => window.removeEventListener('eu4-focus-property', focus);
+  }, []);
   const m = missionsOf(project.tree).find(m => m.uid === selected);
   const patch = (key: string, value: string | Ast) => mutate(p => {
     const mission = missionsOf(p.tree).find(n => n.uid === selected);
