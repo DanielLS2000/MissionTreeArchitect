@@ -1,11 +1,26 @@
 'use client';
+import { useEffect, useRef } from 'react';
 import { children, parse, property, serialize, setField, uid } from '../core/clausewitz';
 import { Project, seriesOf } from '../core/project';
 import { Mutate } from './Canvas';
 import { EditField, RawEditor, preserveIds } from './Inspector';
 export default function Managers({ project, mutate, kind, close, report }: { project: Project; mutate: Mutate; kind: string; close: () => void; report: (s: string) => void }) {
+  const dialog = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    dialog.current?.querySelector<HTMLElement>('button,input,textarea,select')?.focus();
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const items = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea,select,summary') ?? []).filter(el => el.getClientRects().length);
+      const first = items[0], last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    const node = dialog.current; node?.addEventListener('keydown', trap);
+    return () => { node?.removeEventListener('keydown', trap); previous?.focus(); };
+  }, []);
   const attempt = (action: () => void) => { try { action(); } catch (error) { report((error as Error).message); } };
-  return <div className="modal-backdrop" onClick={close}><section className="modal" role="dialog" aria-modal="true" aria-label={kind} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') close(); }}><header><h2>{kind === 'series' ? 'Series & slots' : kind === 'branches' ? 'Branch Architect' : 'Raw View · árvore completa'}</h2><button onClick={close} aria-label="Fechar">✕</button></header>
+  return <div className="modal-backdrop" onClick={close}><section ref={dialog} className="modal" role="dialog" aria-modal="true" aria-label={kind} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') close(); }}><header><h2>{kind === 'series' ? 'Series & slots' : kind === 'branches' ? 'Branch Architect' : 'Raw View · árvore completa'}</h2><button onClick={close} aria-label="Fechar">✕</button></header>
     {kind === 'series' ? <><p className="muted">Cada Series ocupa uma coluna. Potential controla quando aparece no jogo; país/tag da Library são apenas metadata.</p><button onClick={() => mutate(p => p.tree.ast.push(property(`series_${uid().slice(0, 8)}`, [property('slot', '1'), property('generic', 'no'), property('potential', [])])))}>＋ Criar Series</button>
       {seriesOf(project.tree).map(s => <div className="manager-card" key={s.node.id}><EditField label="Series ID" value={s.id} commit={value => mutate(p => {
         if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value) || seriesOf(p.tree).some(x => x.id === value && x.node.id !== s.node.id)) throw new Error('Series ID inválido ou duplicado.');
