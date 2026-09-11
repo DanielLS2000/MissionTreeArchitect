@@ -118,6 +118,15 @@ test('unsupported trigger changes and branch compilation are never reported vali
   assert.ok(diagnostics.some(d => d.code === 'BRANCH_UNKNOWN'));
   assert.ok(diagnostics.some(d => d.code === 'BRANCH_FATHER'));
 });
+test('changing non-modifier rewards yields UNKNOWN rather than a modifier mismatch', () => {
+  const p = newProject(); const reference = importTree(source, 'Reference');
+  p.library.push(reference); p.baseTreeId = reference.id; p.portuversalis = true;
+  copyMission(p, reference.id, missionsOf(reference)[0].uid, seriesOf(p.tree)[0].node.id);
+  const effects = children(field(children(missionsOf(p.tree)[0].node), 'effect'));
+  setField(effects, 'add_prestige', '5');
+  assert.ok(!validate(p).some(d => d.code === 'MODIFIERS'));
+  assert.ok(validate(p).some(d => d.code === 'EFFECT_UNKNOWN'));
+});
 test('DDS DXT1 decodes a red block without changing any GFX key', () => {
   const buffer = new ArrayBuffer(136); const view = new DataView(buffer);
   view.setUint32(0, 0x20534444, true); view.setUint32(4, 124, true);

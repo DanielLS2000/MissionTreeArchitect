@@ -42,9 +42,9 @@ function modifiers(ast: Ast): Ast {
     if (n.key && /modifier/.test(text(n.key))) found.push(n);
     else if (Array.isArray(n.value)) {
       const nested = modifiers(n.value);
-      // Keep the original enclosing scope/conditions so moving an identical modifier
-      // from country to province (or changing its limit) is not silently accepted.
-      if (nested.length) found.push(n);
+      // Keep enclosing scopes and conditions, but do not compare unrelated rewards
+      // merely because they are siblings of an unchanged modifier in an effect block.
+      if (nested.length) found.push({ ...n, value: [...n.value.filter(child => child.key && ['limit', 'chance', 'trigger'].includes(text(child.key))), ...nested] });
     }
   }
   return found;
