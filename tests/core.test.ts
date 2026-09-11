@@ -67,6 +67,8 @@ test('project file keeps IDs, branch metadata, localization and AST', () => {
   const p = project(); const m = missionsOf(p.tree)[0];
   p.localization[m.id] = { title: 'Title "quoted"', description: 'First\nSecond' };
   p.branches.push({ id: 'father', name: 'Father', type: 'father', fatherId: '', trigger: 'always = yes', missions: [m.uid] });
+  renameMission(p, m.uid, m.id);
+  assert.equal(p.localization[m.id].title, 'Title "quoted"');
   const result = loadProject(JSON.stringify(p));
   assert.equal(semantic(result.tree.ast), semantic(p.tree.ast));
   assert.deepEqual(result.branches, p.branches); assert.equal(missionsOf(result.tree)[0].uid, m.uid);

@@ -42,9 +42,10 @@ export default function Canvas({ project, selected, select, mutate, branch, link
     if ((event.target as HTMLElement).closest('button') && !event.altKey) return;
     if (event.button !== 0 && event.button !== 1) return;
     pan.current = { x: event.clientX, y: event.clientY, left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop };
-    event.currentTarget.setPointerCapture(event.pointerId);
   }} onPointerMove={event => {
     if (!pan.current) return;
+    if (Math.hypot(event.clientX - pan.current.x, event.clientY - pan.current.y) < 4) return;
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.scrollLeft = pan.current.left - (event.clientX - pan.current.x);
     event.currentTarget.scrollTop = pan.current.top - (event.clientY - pan.current.y);
   }} onPointerUp={() => { pan.current = null; }} onPointerCancel={() => { pan.current = null; }}>

@@ -54,6 +54,7 @@ export function renameMission(project: Project, nodeUid: string, id: string): vo
   if (!mission) return;
   if (missions.some(m => m.id === id && m.uid !== nodeUid)) throw new Error('Mission ID duplicado.');
   const old = mission.id;
+  if (old === id) return;
   mission.node.key = id;
   missions.forEach(m => {
     children(field(children(m.node), 'required_missions')).forEach(n => {
