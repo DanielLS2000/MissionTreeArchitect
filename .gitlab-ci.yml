@@ -1,0 +1,19 @@
+image: node:22
+
+stages:
+  - verify
+
+verify:
+  stage: verify
+  variables:
+    NEXT_TELEMETRY_DISABLED: "1"
+  script:
+    - npm install --no-audit --no-fund
+    - npm run test
+    - npm run typecheck
+    - npm run build
+  artifacts:
+    when: always
+    paths:
+      - package-lock.json
+    expire_in: 7 days
