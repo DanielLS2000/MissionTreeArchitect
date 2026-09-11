@@ -114,4 +114,16 @@ test('unsupported trigger changes and branch compilation are never reported vali
   const diagnostics = validate(p);
   assert.ok(diagnostics.some(d => d.code === 'TRIGGER_UNKNOWN' && d.severity === 'WARNING'));
   assert.ok(diagnostics.some(d => d.code === 'BRANCH_UNKNOWN'));
-  assert.ok(diagnostics.some(d => d.code
+  assert.ok(diagnostics.some(d => d.code === 'BRANCH_FATHER'));
+});
+test('DDS DXT1 decodes a red block without changing any GFX key', () => {
+  const buffer = new ArrayBuffer(136); const view = new DataView(buffer);
+  view.setUint32(0, 0x20534444, true); view.setUint32(4, 124, true);
+  view.setUint32(12, 4, true); view.setUint32(16, 4, true);
+  new Uint8Array(buffer, 84, 4).set([68, 88, 84, 49]);
+  view.setUint16(128, 0xf800, true);
+  const decoded = decodeDds(buffer);
+  assert.equal(decoded.width, 4); assert.equal(decoded.height, 4);
+  assert.deepEqual(Array.from(decoded.pixels.slice(0, 4)), [255, 0, 0, 255]);
+  assert.throws(() => decodeDds(new ArrayBuffer(10)), /truncado/);
+});
