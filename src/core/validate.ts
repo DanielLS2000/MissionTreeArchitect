@@ -40,7 +40,12 @@ function modifiers(ast: Ast): Ast {
   const found: Ast = [];
   for (const n of ast) {
     if (n.key && /modifier/.test(text(n.key))) found.push(n);
-    else if (Array.isArray(n.value)) found.push(...modifiers(n.value));
+    else if (Array.isArray(n.value)) {
+      const nested = modifiers(n.value);
+      // Keep enclosing scopes and conditions, but do not compare unrelated rewards
+      // merely because they are siblings of an unchanged modifier in an effect block.
+      if (nested.length) found.push({ ...n, value: [...n.value.filter(child => child.key && ['limit', 'chance', 'trigger'].includes(text(child.key))), ...nested] });
+    }
   }
   return found;
 }
@@ -102,6 +107,7 @@ export function validate(p: Project): Diagnostic[] {
     const counterpart = referenceMissions.find(r => r.id === origin?.missionId);
     if (!counterpart) { add('ERROR', 'COUNTERPART', 'Missão sem contraparte válida na Library.', m, 'counterpart'); continue; }
     if (ancestors(m, missions).size < ancestors(counterpart, referenceMissions).size) add('ERROR', 'ANCESTORS', 'Menos pré-requisitos diretos/indiretos únicos que a contraparte.', m, 'required');
+    if (ancestors(counterpart, referenceMissions).has(counterpart.id) || referenceMissions.some(r => r.required.some(id => !referenceMissions.some(x => x.id === id)))) add('WARNING', 'REFERENCE_UNKNOWN', 'UNKNOWN: referência possui ciclo ou pré-requisito externo; contagem de ancestrais pode estar incompleta.', m, 'counterpart');
     const actualBody = children(m.node), referenceBody = children(counterpart.node);
     const actualTrigger = field(actualBody, 'trigger'), referenceTrigger = field(referenceBody, 'trigger');
     if ((actualTrigger && !Array.isArray(actualTrigger.value)) || (referenceTrigger && !Array.isArray(referenceTrigger.value))) add('WARNING', 'TRIGGER_UNKNOWN', 'UNKNOWN: trigger não é um bloco.', m, 'trigger');
@@ -109,9 +115,16 @@ export function validate(p: Project): Diagnostic[] {
       const comparison = compareTriggers(children(actualTrigger), children(referenceTrigger));
       if (comparison === 'changed') add('WARNING', 'TRIGGER_UNKNOWN', 'UNKNOWN: triggers alterados. Revisar conquistas, estate, relações, construções e demais condições manualmente.', m, 'trigger');
       if (comparison === 'allowed') add('INFO', 'TROOPS', 'Requisitos diretos de tropas/navios respeitam o mínimo de 70%.', m, 'trigger');
+      const invariantKeys = new Set(['prestige', 'stability', 'legitimacy', 'republican_tradition', 'devotion', 'meritocracy', 'absolutism', 'war_exhaustion', 'religious_unity', 'is_at_war', 'is_great_power', 'adm_tech', 'dip_tech', 'mil_tech']);
+      for (const reference of children(referenceTrigger)) {
+        if (!reference.key || !invariantKeys.has(reference.key)) continue;
+        const actual = field(children(actualTrigger), reference.key);
+        if (actual && semantic([actual]) !== semantic([reference])) add('ERROR', 'INVARIANT_TRIGGER', `${reference.key}: trigger deve permanecer igual à contraparte.`, m, 'trigger');
+      }
       for (const reference of children(referenceTrigger)) {
         if (!reference.key || !troopKeys.has(reference.key) || typeof reference.value !== 'string' || !['=', '>='].includes(reference.op ?? '=')) continue;
         const actual = field(children(actualTrigger), reference.key);
+        if (!actual) add('WARNING', 'TROOP_UNKNOWN', `UNKNOWN: ${reference.key} removido ou movido para outro escopo.`, m, 'trigger');
         if (actual && typeof actual.value === 'string' && Number.isFinite(Number(actual.value)) && Number(actual.value) < Number(reference.value) * 0.7) add('ERROR', 'TROOP_REDUCTION', `${reference.key}: redução acima de 30%.`, m, 'trigger');
       }
     }
