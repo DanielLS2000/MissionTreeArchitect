@@ -133,6 +133,7 @@ export default function Architect() {
   const autoArrange = () => mutate(p => {
     const all = missionsOf(p.tree);
     const remaining = new Map(all.map(m => [m.id, m]));
+    if (remaining.size !== all.length) throw new Error('Auto-arrange cancelado: resolva IDs duplicados.');
     const rows = new Map<string, number>(), occupied = new Set<string>();
     while (remaining.size) {
       let progress = false;
