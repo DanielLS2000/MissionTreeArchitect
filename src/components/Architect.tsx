@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { children, serialize, setField } from '../core/clausewitz';
-import { Project, addMission, exportLocalization, importTree, loadProject, missionsOf, newProject, seriesOf } from '../core/project';
+import { children, setField } from '../core/clausewitz';
+import { Project, addMission, exportLocalization, exportMissionTree, importTree, loadProject, missionsOf, newProject, seriesOf } from '../core/project';
 import { Diagnostic, validate } from '../core/validate';
 import { download, readText, recentProjects, saveProject } from '../lib/storage';
 import Canvas, { Mutate } from './Canvas';
@@ -120,7 +120,7 @@ export default function Architect() {
     setShowProblems(true);
     if (errors.length) { report(`Exportação bloqueada: corrija ${errors.length} ERROR(s).`); return; }
     if (warnings.length && !confirm(`${warnings.length} WARNING(s), incluindo regras possivelmente UNKNOWN. Revise a lista; exportar não certifica compatibilidade com EU4/Portuversalis. Continuar?`)) return;
-    download(`${project.tree.name}_missions.txt`, serialize(project.tree.ast) + '\n');
+    download(`${project.tree.name}_missions.txt`, exportMissionTree(project.tree));
   };
   const focusDiagnostic = (d: Diagnostic) => {
     setBranch('');

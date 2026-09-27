@@ -29,6 +29,19 @@ export function seriesOf(tree: MissionTree): Series[] {
   });
 }
 export const missionsOf = (tree: MissionTree) => seriesOf(tree).flatMap(s => s.missions);
+// EU4 reads missions in the order they appear inside a series.  Keep the
+// project's editing order intact, but normalize that order in the exported AST.
+export function exportMissionTree(tree: MissionTree): string {
+  const ast = cloneAst(tree.ast);
+  const exportTree = { ...tree, ast };
+  for (const series of seriesOf(exportTree)) {
+    const sortedMissions = [...series.missions].sort((a, b) => a.position - b.position);
+    const missionIds = new Set(series.missions.map(mission => mission.uid));
+    let nextMission = 0;
+    series.node.value = children(series.node).map(node => missionIds.has(node.id) ? sortedMissions[nextMission++].node : node);
+  }
+  return serialize(ast) + '\n';
+}
 export function importTree(source: string, name: string): MissionTree {
   return { id: uid(), name, country: '', tag: '', ast: parse(source) };
 }

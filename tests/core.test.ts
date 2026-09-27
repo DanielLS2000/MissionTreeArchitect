@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { children, field, parse, semantic, serialize, setField } from '../src/core/clausewitz';
-import { addMission, copyMission, deleteMission, exportLocalization, importTree, loadProject, missionsOf, moveMission, newProject, renameMission, seriesOf } from '../src/core/project';
+import { addMission, copyMission, deleteMission, exportLocalization, exportMissionTree, importTree, loadProject, missionsOf, moveMission, newProject, renameMission, seriesOf } from '../src/core/project';
 import { validate } from '../src/core/validate';
 import { decodeDds } from '../src/lib/icons';
 // Synthetic fixture, not the unavailable French mission file or a certification of EU4 branch behavior.
@@ -45,6 +45,17 @@ test('Import -> Parse -> Edit -> Export -> Reimport preserves unrelated structur
   assert.equal(all[0].id, 'renamed'); assert.equal(all[0].position, 3);
   assert.deepEqual(all[1].required, ['renamed']);
   assert.equal(semantic(children(field(children(all[0].node), 'unknown'))), unknown);
+});
+test('mission tree export orders missions in each series by ascending position', () => {
+  const p = project();
+  const series = seriesOf(p.tree)[0];
+  const first = series.missions[0], second = series.missions[1];
+  setField(children(first.node), 'position', '6');
+  setField(children(second.node), 'position', '4');
+  const exported = exportMissionTree(p.tree);
+  assert.ok(exported.indexOf('second_mission = {') < exported.indexOf('first_mission = {'));
+  assert.equal(missionsOf(importTree(exported, 'Ordered')).map(m => m.position).join(','), '4,6');
+  assert.equal(missionsOf(p.tree).map(m => m.position).join(','), '6,4');
 });
 test('parser rejects malformed input with line and column', () => {
   for (const bad of ['x = {', 'x =', 'x = "unterminated', '}', 'a = { b = }']) assert.throws(() => parse(bad), /linha .*coluna/);
