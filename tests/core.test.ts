@@ -119,6 +119,14 @@ test('Portuversalis enforces counterpart, limit, troop floor and modifiers', () 
   assert.ok(validate(p).some(d => d.code === 'COUNTERPART'));
   p.portuversalis = false; assert.ok(!validate(p).some(d => d.code === 'MODIFIERS'));
 });
+test('ancestor diagnostic reports provided, required and missing prerequisite counts', () => {
+  const p = newProject(); const tree = importTree(source, 'Base'); p.library.push(tree); p.baseTreeId = tree.id; p.portuversalis = true;
+  const referenceMission = missionsOf(tree)[1];
+  const copiedUid = copyMission(p, tree.id, referenceMission.uid, seriesOf(p.tree)[0].node.id);
+  setField(children(missionsOf(p.tree)[0].node), 'required_missions', []);
+  const diagnostic = validate(p).find(d => d.code === 'ANCESTORS' && d.missionUid === copiedUid);
+  assert.equal(diagnostic?.message, 'Menos pré-requisitos diretos/indiretos únicos que a contraparte: fornecidos 0 de 1; faltam 1.');
+});
 test('unsupported trigger changes and branch compilation are never reported valid', () => {
   const p = newProject(); const tree = importTree(source, 'Base'); p.library.push(tree); p.baseTreeId = tree.id; p.portuversalis = true;
   copyMission(p, tree.id, missionsOf(tree)[0].uid, seriesOf(p.tree)[0].node.id);

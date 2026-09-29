@@ -106,7 +106,12 @@ export function validate(p: Project): Diagnostic[] {
     const referenceMissions = tree ? missionsOf(tree) : [];
     const counterpart = referenceMissions.find(r => r.id === origin?.missionId);
     if (!counterpart) { add('ERROR', 'COUNTERPART', 'Missão sem contraparte válida na Library.', m, 'counterpart'); continue; }
-    if (ancestors(m, missions).size < ancestors(counterpart, referenceMissions).size) add('ERROR', 'ANCESTORS', 'Menos pré-requisitos diretos/indiretos únicos que a contraparte.', m, 'required');
+    const providedPrerequisites = ancestors(m, missions).size;
+    const requiredPrerequisites = ancestors(counterpart, referenceMissions).size;
+    if (providedPrerequisites < requiredPrerequisites) {
+      const missingPrerequisites = requiredPrerequisites - providedPrerequisites;
+      add('ERROR', 'ANCESTORS', `Menos pré-requisitos diretos/indiretos únicos que a contraparte ${providedPrerequisites}/${requiredPrerequisites}; faltam ${missingPrerequisites}.`, m, 'required');
+    }
     if (ancestors(counterpart, referenceMissions).has(counterpart.id) || referenceMissions.some(r => r.required.some(id => !referenceMissions.some(x => x.id === id)))) add('WARNING', 'REFERENCE_UNKNOWN', 'UNKNOWN: referência possui ciclo ou pré-requisito externo; contagem de ancestrais pode estar incompleta.', m, 'counterpart');
     const actualBody = children(m.node), referenceBody = children(counterpart.node);
     const actualTrigger = field(actualBody, 'trigger'), referenceTrigger = field(referenceBody, 'trigger');
